@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<title>Catálogo Podologia - Produtos Profissionais</title>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Catálogo Podologia - Admin</title>
+<style>
+  :root{
+    --bg:#f9f2f4; --accent:#d6336c; --panel:#fff; --muted:#666;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Poppins",sans-serif;margin:0;background:var(--bg);color:#222}
+  header{background:#f4c2cc;padding:22px 16px;text-align:left}
+  header .wrap{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+  header h1{margin:0;font-size:28px}
+  header p{margin:2px 0 0;color:var(--muted)}
+  .top-actions{display:flex;gap:10px;align-items:center}
+  .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer;font-weight:600}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(214,51,108,0.15)}
+  .filtros{max-width:1200px;margin:20px auto;display:flex;gap:10px;align-items:center;justify-content:center;padding:0 16px}
+  .filtros input,.filtros select{padding:10px;border-radius:8px;border:1px solid #ddd;font-size:15px}
+  .catalogo{max-width:1200px;margin:0 auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+  .produto{background:var(--panel);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06);overflow:hidden;transition:transform .15s}
+  .produto:hover{transform:translateY(-6px)}
+  .produto img{width:100%;height:180px;object-fit:cover;background:#eee}
+  .produto .body{padding:14px}
+  .produto h3{margin:0 0 8px;font-size:18px}
+  .produto p{margin:0 0 12px;color:var(--muted);font-size:14px;min-height:36px}
+  .preco{font-weight:700;color:var(--accent);margin-bottom:8px}
+  footer{margin-top:24px;text-align:center;background:#f4c2cc;padding:18px;color:#333}
+  footer a{color:var(--accent);text-decoration:none;font-weight:600}
+
+  /* Admin panel */
+  .admin-panel{position:fixed;right:20px;bottom:20px;background:var(--panel);padding:12px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12);width:360px;max-width:calc(100% - 40px);display:none;z-index:40}
+  .admin-panel.show{display:block}
+  .admin-panel h4{margin:0 0 8px}
+  .admin-list{max-height:300px;overflow:auto;margin-bottom:10px}
+  .admin-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;border:1px solid #f1e6e8;margin-bottom:8px}
+  .admin-item img{width:44px;height:44px;object-fit:cover;border-radius:6px;background:#fafafa}
+  .admin-item .meta{flex:1}
+  .admin-item .meta b{display:block}
+  .admin-item .actions{display:flex;gap:6px}
+  .small{font-size:13px;color:var(--muted)}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal-backdrop.show{display:flex}
+  .modal{background:var(--panel);width:100%;max-width:720px;border-radius:12px;padding:18px}
+  .form-row{display:flex;gap:10px;margin-bottom:10px}
+  .form-row input[type="text"],.form-row input[type="number"],textarea,select{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:14px}
+  textarea{min-height:80px;resize:vertical}
+  label.small{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  .logo{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#fff,#eee);display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#999}
+
+  /* tiny helpers */
+  .row{display:flex;gap:10px;align-items:center}
+  .center{text-align:center}
+  @media(max-width:600px){header .wrap{flex-direction:column;gap:8px;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div>
+      <h1>Catálogo Podologia</h1>
+      <p>Produtos profissionais para cuidados podológicos</p>
+    </div>
+    <div class="top-actions">
+      <div class="logo">L</div>
+      <button id="btnOpenAdmin" class="btn">Área Admin</button>
+    </div>
+  </div>
+</header>
+
+<div class="filtros">
+  <input id="campoBusca" placeholder="🔍 Buscar produtos..." />
+  <select id="filtroCategoria">
+    <option value="todas">Todas as Categorias</option>
+    <option value="instrumentos">Instrumentos</option>
+    <option value="cremes">Cremes</option>
+    <option value="descartaveis">Descartáveis</option>
+  </select>
+</div>
+
+<main id="mainContent">
+  <section class="catalogo" id="catalogo"></section>
+  <div style="max-width:1200px;margin:20px auto;padding:0 16px">
+    <footer>
+      <p>Entre em contato:</p>
+      <p>📱 <a id="waLink" href="#" target="_blank">WhatsApp</a> | 📸 <a id="igLink" href="#" target="_blank">@sualoja</a></p>
+      <p>© 2025 Catálogo Podologia - Todos os direitos reservados</p>
+    </footer>
+  </div>
+</main>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="admin-panel" aria-hidden="true">
+  <div id="adminLoggedOut">
+    <h4>Login Administrador</h4>
+    <div class="small">Faça login para gerenciar o catálogo</div>
+    <div style="margin-top:10px">
+      <input id="loginUser" placeholder="Usuário" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;margin-bottom:8px" />
+      <input id="loginPass" placeholder="Senha" type="password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd" />
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="btnLogin" class="btn">Entrar</button>
+      <button id="btnClosePanel" class="btn ghost">Fechar</button>
+    </div>
+  </div>
+
+  <div id="adminLoggedIn" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <h4 style="margin:0">Painel Admin</h4>
+      <div style="display:flex;gap:8px">
+        <button id="btnAddNew" class="btn">+ Produto</button>
+        <button id="btnLogout" class="btn ghost">Logout</button>
+      </div>
+    </div>
+
+    <div class="admin-list" id="adminList"></div>
+    <div style="margin-top:8px">
+      <small class="small">Obs: imagens são armazenadas localmente no seu navegador (localStorage).</small>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: add/edit -->
+<div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 id="modalTitle">Novo Produto</h3>
+      <button id="btnCloseModal" class="btn ghost">Fechar</button>
+    </div>
+    <div>
+      <label class="small">Imagem (jpg/png)</label>
+      <input id="inputImage" type="file" accept="image/*" />
+      <div style="height:10px"></div>
+      <label class="small">Nome</label>
+      <input id="inputNome" type="text" placeholder="Ex: Alicate Podológico" />
+      <div style="height:8px"></div>
+      <label class="small">Descrição</label>
+      <textarea id="inputDescricao" placeholder="Breve descrição"></textarea>
+      <div style="height:8px"></div>
+      <div class="form-row">
+        <div style="flex:1">
+          <label class="small">Preço (ex: 120.00)</label>
+          <input id="inputPreco" type="number" step="0.01" />
+        </div>
+        <div style="width:160px">
+          <label class="small">Categoria</label>
+          <select id="inputCategoria">
+            <option value="instrumentos">Instrumentos</option>
+            <option value="cremes">Cremes</option>
+            <option value="descartaveis">Descartáveis</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="btnSaveProduct" class="btn">Salvar</button>
+        <button id="btnCancel" class="btn ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================
+   CONFIGURAÇÃO
+============================ */
+const ADMIN_USER = 'claudiapodologa';
+const ADMIN_PASS = '170113';
+const STORAGE_KEY = 'catalog_podologia_v1';
+const CONTACT_WA = '5599999999999';
+const CONTACT_IG = 'sualoja';
+
+function idNow(){ return 'p'+Date.now()+Math.floor(Math.random()*999); }
+
+const SAMPLE_PRODUCTS = [
+  { id:idNow(), name:'Alicate Podológico Profissional', desc:'Alicate de alta precisão para procedimentos de podologia.', price:120.00, category:'instrumentos', img:'https://via.placeholder.com/600x400?text=Alicate' },
+  { id:idNow(), name:'Creme Hidratante para Pés', desc:'Hidratação profunda com ureia 10% e rápida absorção.', price:45.00, category:'cremes', img:'https://via.placeholder.com/600x400?text=Creme+Hidratante' },
+  { id:idNow(), name:'Kit Lixa Descartável 100un', desc:'Lixas higiênicas de uso único, ideal para esfoliação.', price:35.00, category:'descartaveis', img:'https://via.placeholder.com/600x400?text=Kit+Lixa' }
+];
+
+function saveProducts(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function loadProducts(){ try{ const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return SAMPLE_PRODUCTS.slice(); return JSON.parse(raw); }catch(e){ console.error(e); return SAMPLE_PRODUCTS.slice(); } }
+
+let PRODUCTS = loadProducts();
+let LOGGED = false;
+let editingId = null;
+
+
+
+/* ============================
+   RENDER CATÁLOGO
+============================ */
+function formatPrice(n){ return 'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function escapeHtml(s){ if(!s&&s!==0) return ''; return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+function renderCatalog(){
+  const cont=document.getElementById('catalogo');
+  cont.innerHTML='';
+  const q=(document.getElementById('campoBusca').value||'').toLowerCase();
+  const cat=document.getElementById('filtroCategoria').value;
+  const filtered=PRODUCTS.filter(p=>{
+    const matchQ=!q || (p.name+' '+p.desc).toLowerCase().includes(q);
+    const matchCat=(cat==='todas')||(p.category===cat);
+    return matchQ && matchCat;
+  });
+  if(filtered.length===0){
+    cont.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--muted)">Nenhum produto encontrado.</div>';
+    return;
+  }
+  filtered.forEach(p=>{
+    const el=document.createElement('article');
+    el.className='produto';
+    el.innerHTML=`
+      <img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.name)}" />
+      <div class="body">
+        <h3>${escapeHtml(p.name)}</h3>
+        <p>${escapeHtml(p.desc)}</p>
+        <div class="preco">${formatPrice(p.price)}</div>
+      </div>
+    `;
+    cont.appendChild(el);
+  });
+}
+
+/* ============================
+   RENDER ADMIN LIST
+============================ */
+function renderAdminList(){
+  const list=document.getElementById('adminList');
+  list.innerHTML='';
+  PRODUCTS.slice().reverse().forEach(p=>{
+    const row=document.createElement('div');
+    row.className='admin-item';
+    row.innerHTML=`
+      <img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.name)}" />
+      <div class="meta">
+        <b>${escapeHtml(p.name)}</b>
+        <div class="small">${escapeHtml(p.category)} • ${formatPrice(p.price)}</div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" data-edit="${p.id}">Editar</button>
+        <button class="btn" data-delete="${p.id}">Remover</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click',()=>openEditModal(btn.getAttribute('data-edit')));
+  });
+  list.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(confirm('Remover produto permanentemente?')){
+        PRODUCTS=PRODUCTS.filter(x=>x.id!==btn.getAttribute('data-delete'));
+        saveProducts(PRODUCTS);
+        renderAdminList();
+        renderCatalog();
+      }
+    });
+  });
+}
+
+/* ============================
+   LOGIN / LOGOUT
+============================ */
+const adminPanel=document.getElementById('adminPanel');
+const btnOpenAdmin=document.getElementById('btnOpenAdmin');
+
+btnOpenAdmin.addEventListener('click',()=>{ adminPanel.classList.add('show'); document.getElementById('loginUser').focus(); });
+
+document.getElementById('btnClosePanel').addEventListener('click',()=>{ adminPanel.classList.remove('show'); });
+
+document.getElementById('btnLogin').addEventListener('click',()=>{
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  if(u===ADMIN_USER && p===ADMIN_PASS){
+    LOGGED=true;
+    showLoggedState();
+    alert('Login efetuado com sucesso.');
+  } else {
+    alert('Usuário ou senha incorretos.');
+  }
+});
+
+document.getElementById('btnLogout').addEventListener('click',()=>{
+  if(confirm('Encerrar sessão?')){
+    LOGGED=false;
+    showLoggedState();
+  }
+});
+
+function showLoggedState(){
+  const inDiv=document.getElementById('adminLoggedIn');
+  const outDiv=document.getElementById('adminLoggedOut');
+  if(LOGGED){
+    inDiv.style.display='block';
+    outDiv.style.display='none';
+    renderAdminList();
+  } else {
+    inDiv.style.display='none';
+    outDiv.style.display='block';
+  }
+}
+
+/* ============================
+   MODAL ADD/EDIT
+============================ */
+const modal=document.getElementById('modalBackdrop');
+document.getElementById('btnAddNew').addEventListener('click',()=>{ editingId=null; openModalForNew(); });
+document.getElementById('btnCloseModal').addEventListener('click',closeModal);
+document.getElementById('btnCancel').addEventListener('click',closeModal);
+document.getElementById('btnSaveProduct').addEventListener('click',saveProduct);
+
+function openModalForNew(){ document.getElementById('modalTitle').textContent='Novo Produto'; clearModalFields(); modal.classList.add('show'); modal.style.display='flex'; }
+function openEditModal(id){ const p=PRODUCTS.find(x=>x.id===id); if(!p)return alert('Produto não encontrado.'); editingId=id; document.getElementById('modalTitle').textContent='Editar Produto'; document.getElementById('inputNome').value=p.name; document.getElementById('inputDescricao').value=p.desc; document.getElementById('inputPreco').value=p.price; document.getElementById('inputCategoria').value=p.category; modal.classList.add('show'); modal.style.display='flex'; }
+function closeModal(){ modal.classList.remove('show'); modal.style.display='none'; clearModalFields(); }
+function clearModalFields(){ document.getElementById('inputImage').value=''; document.getElementById('inputNome').value=''; document.getElementById('inputDescricao').value=''; document.getElementById('inputPreco').value=''; document.getElementById('inputCategoria').value='instrumentos'; }
+function readFileAsDataURL(file){ return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); }); }
+
+async function saveProduct(){
+  const nome=document.getElementById('inputNome').value.trim();
+  const desc=document.getElementById('inputDescricao').value.trim();
+  const preco=Number(document.getElementById('inputPreco').value||0);
+  const categoria=document.getElementById('inputCategoria').value;
+  const fileInput=document.getElementById('inputImage');
+  if(!nome)return alert('Preencha o nome.');
+  if(preco<=0)return alert('Informe um preço válido.');
+
+  let imgData=null;
+  if(fileInput.files && fileInput.files[0]){
+    try{ imgData=await readFileAsDataURL(fileInput.files[0]); }catch(e){ console.error(e); alert('Erro ao ler imagem.'); return; }
+  }
+
+  if(editingId){
+    const idx=PRODUCTS.findIndex(x=>x.id===editingId);
+    if(idx===-1)return alert('Erro: produto não encontrado.');
+    PRODUCTS[idx].name=nome; PRODUCTS[idx].desc=desc; PRODUCTS[idx].price=preco; PRODUCTS[idx].category=categoria;
+    if(imgData) PRODUCTS[idx].img=imgData;
+    saveProducts(PRODUCTS); alert('Produto atualizado.');
+  } else {
+    PRODUCTS.push({ id:idNow(), name:nome, desc:desc, price:preco, category:categoria, img:imgData||'https://via.placeholder.com/600x400?text=Sem+Imagem' });
+    saveProducts(PRODUCTS); alert('Produto criado.');
+  }
+
+  closeModal(); renderAdminList(); renderCatalog();
+}
+
+/* ============================
+   FILTROS
+============================ */
+document.getElementById('campoBusca').addEventListener('input', renderCatalog);
+document.getElementById('filtroCategoria').addEventListener('change', renderCatalog);
+
+/* ============================
+   ESC & backdrop
+============================ */
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); adminPanel.classList.remove('show'); } });
+
+/* ============================
+   INIT
+============================ */
+renderCatalog();
+showLoggedState();
+</script>
+</body>
+</html>
